@@ -259,6 +259,7 @@ public class RoomSeverService
 
         public Text(int textId, String sender, String text)
         {
+            System.out.println("test");
             this.textId = textId;
             this.sender = sender;
             this.text = text;
