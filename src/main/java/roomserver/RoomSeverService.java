@@ -16,25 +16,27 @@ import java.util.logging.Logger;
 public class RoomSeverService
 {
     private final Logger logr;
-    List<Room> masterRoomList = new Vector<>();
+    ByteBuffer adminReadBuf = ByteBuffer.allocate(10000);
+    ByteBuffer adminWriteBuf = ByteBuffer.allocate(10000);
     AsynchronousChannelGroup channelGroup;
     AsynchronousServerSocketChannel masterRoomSocketChannel;
     AsynchronousSocketChannel adminServerSocketChannel;
-    ByteBuffer readBuffer = ByteBuffer.allocate(10000);
-    ByteBuffer writeBuffer = ByteBuffer.allocate(10000);
     private Object for_sendTextProcess = new Object();
     private Object for_enterRoomProcess = new Object();
     private Object for_inviteRoomProcess = new Object();
     private Object for_quitRoomProcess = new Object();
 
-    List<Client> masterClientList = new Vector<>();
+    public static List<Client> masterClientList = new Vector<>();
+    public static List<Room> masterRoomList = new Vector<>();
 
     public RoomSeverService()
     {
         logr = MyLog.getLogr();
     }
 
-    void startServer(int port, int adminPort)
+
+
+    void startServer(int openPort, int adminPort)
     {
         try
         {
@@ -43,9 +45,10 @@ public class RoomSeverService
                     Executors.defaultThreadFactory()
             );
             masterRoomSocketChannel = AsynchronousServerSocketChannel.open(channelGroup);
-            masterRoomSocketChannel.bind(new InetSocketAddress(port));
+            masterRoomSocketChannel.bind(new InetSocketAddress(openPort));
             logr.info("[서버 연결됨]");
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             if (masterRoomSocketChannel.isOpen()) stopServer();
             logr.severe("[서버 연결 실패 startServer]");
@@ -85,7 +88,7 @@ public class RoomSeverService
         {
             adminServerSocketChannel = AsynchronousSocketChannel.open(channelGroup);
             adminServerSocketChannel.bind(new InetSocketAddress(adminPort));
-            adminServerSocketChannel.connect(new InetSocketAddress("localhost", 5001), null, new CompletionHandler<Void, Object>()
+            adminServerSocketChannel.connect(new InetSocketAddress("127.0.0.1", 5001), null, new CompletionHandler<Void, Object>()
             {
                 @Override
                 public void completed(Void result, Object attachment)
@@ -133,28 +136,28 @@ public class RoomSeverService
     }
 
 
-    void adminReceive()
+    public void adminReceive()
     {
-        ByteBuffer adminReadBuf = ByteBuffer.allocate(10000);
         adminServerSocketChannel.read(adminReadBuf, adminReadBuf, new CompletionHandler<Integer, ByteBuffer>()
         {
             @Override
             public void completed(Integer result, ByteBuffer attachment)
             {
 
+                processOp(adminReadBuf);
+                if(adminServerSocketChannel.isOpen()) adminServerSocketChannel.read(adminReadBuf,adminReadBuf,this);
             }
 
             @Override
             public void failed(Throwable exc, ByteBuffer attachment)
             {
-
+                logr.info("[admin server 연결 끊김]");
             }
         });
     }
 
-    void adminSend()
+    public void adminSend()
     {
-        ByteBuffer adminWriteBuf = ByteBuffer.allocate(10000);
         adminServerSocketChannel.write(adminWriteBuf, adminWriteBuf, new CompletionHandler<Integer, ByteBuffer>()
         {
             @Override
@@ -170,6 +173,54 @@ public class RoomSeverService
             }
         });
     }
+
+    void processOp(ByteBuffer attachment)
+    {
+        attachment.flip();
+        ServerProcess serverProcess = new ServerProcess(attachment, for_sendTextProcess, for_enterRoomProcess, for_inviteRoomProcess, for_quitRoomProcess);
+        int reqId = serverProcess.getReqId();
+        int operation = serverProcess.getOperation();
+        String userId = serverProcess.getUserId();
+        int roomNum = serverProcess.getRoomNum();
+        OperationEnum op = OperationEnum.fromInteger(operation);
+        switch (op)
+        {
+            case login:
+//                serverProcess.loginProcess(reqId, operation, userId, attachment);
+//                logr.info("login process completed");
+                return;
+            case logout:
+//                serverProcess.logoutProcess(reqId, operation, userId, attachment);
+//                logr.info("logout process completed");
+                return;
+            case sendText:
+//                serverProcess.sendTextProcess(reqId, operation, userId, attachment);
+                return;
+            case fileUpload:
+            case fileList:
+            case fileDownload:
+            case fileDelete:
+            case createRoom:
+                serverProcess.createRoomProcess(reqId, operation, userId, attachment);
+                return;
+            case quitRoom:
+//                serverProcess.quitRoomProcess(reqId,operation,roomNum,userId,attachment);
+                return;
+            case inviteRoom:
+//                serverProcess.inviteRoomProcess(reqId, operation, roomNum, userId, attachment);
+                return;
+            case roomUserList:
+            case roomList:
+//                serverProcess.roomListProcess(reqId, operation, roomNum, userId, attachment);
+                return;
+            case enterRoom:
+//                serverProcess.enterRoomProcess(reqId, operation, roomNum, userId, attachment);
+                return;
+            case enrollFile:
+
+        }
+    }
+
 
 
     public static void main(String[] args)
