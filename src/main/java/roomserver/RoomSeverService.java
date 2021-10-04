@@ -1,37 +1,37 @@
-import util.LogFormatter;
+package roomserver;
+
+import room.Room;
+import user.Client;
+import util.MyLog;
+import util.OperationEnum;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
 import java.util.concurrent.Executors;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Level;
-import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 public class RoomSeverService
 {
-    private final static Logger logr = Logger.getGlobal();
+    private final Logger logr;
     List<Room> masterRoomList = new Vector<>();
     AsynchronousChannelGroup channelGroup;
     AsynchronousServerSocketChannel masterRoomSocketChannel;
     AsynchronousSocketChannel adminServerSocketChannel;
+    ByteBuffer readBuffer = ByteBuffer.allocate(10000);
+    ByteBuffer writeBuffer = ByteBuffer.allocate(10000);
+    private Object for_sendTextProcess = new Object();
+    private Object for_enterRoomProcess = new Object();
+    private Object for_inviteRoomProcess = new Object();
+    private Object for_quitRoomProcess = new Object();
 
     List<Client> masterClientList = new Vector<>();
 
-    private static void setupLogger()
+    public RoomSeverService()
     {
-        LogFormatter formatter = new LogFormatter();
-        LogManager.getLogManager().reset();
-        logr.setLevel(Level.ALL);
-
-        ConsoleHandler ch = new ConsoleHandler();
-        ch.setLevel(Level.INFO);
-        ch.setFormatter(formatter);
-        logr.addHandler(ch);
+        logr = MyLog.getLogr();
     }
 
     void startServer(int port, int adminPort)
@@ -171,113 +171,9 @@ public class RoomSeverService
         });
     }
 
-    class Client
-    {
-        AsynchronousSocketChannel socketChannel = null;
-        ByteBuffer readBuffer = ByteBuffer.allocate(10000);
-        ByteBuffer writeBuffer = ByteBuffer.allocate(10000);
-        String userId = "not set yet";
-        List<Room> myRoomList = new Vector<>();
-        Room myCurRoom;
-
-        Client(AsynchronousSocketChannel socketChannel)
-        {
-            this.socketChannel = socketChannel;
-            receive();
-        }
-
-        void receive()
-        {
-            socketChannel.read(readBuffer, readBuffer, new CompletionHandler<Integer, ByteBuffer>()
-            {
-                @Override
-                public void completed(Integer result, ByteBuffer attachment)
-                {
-
-                    readBuffer = ByteBuffer.allocate(10000);
-                    readBuffer.clear();
-
-                }
-
-                @Override
-                public void failed(Throwable exc, ByteBuffer attachment)
-                {
-
-                }
-            });
-        }
-
-        void send()
-        {
-            socketChannel.write(writeBuffer, null, new CompletionHandler<Integer, Object>()
-            {
-                @Override
-                public void completed(Integer result, Object attachment)
-                {
-                    writeBuffer = ByteBuffer.allocate(10000);
-                    writeBuffer.clear();
-
-                }
-
-                @Override
-                public void failed(Throwable exc, Object attachment)
-                {
-
-                }
-            });
-        }
-    }
-
-
-    class Room
-    {
-        int roomNum;
-        String roomName;
-        List<Client> clientList = new Vector<>();
-        List<Text> chatLog = new ArrayList<>();
-        int ip0;
-        int ip1;
-        int ip2;
-        int ip3;
-        int port;
-
-        Room(int roomNum)
-        {
-            this.roomNum = roomNum;
-        }
-
-    }
-
-    class Text
-    {
-        int textId;
-        String sender;
-        String text;
-        Map<String, Integer> readCheck = new HashMap<>();
-        int notRoomRead = 0;
-        Room curRoom;
-
-        public Text(int textId, String sender, String text)
-        {
-            System.out.println("test");
-            this.textId = textId;
-            this.sender = sender;
-            this.text = text;
-            for (Client c : curRoom.clientList)
-            {
-                if (c.socketChannel != null) readCheck.put(c.userId, 1);
-                else
-                {
-                    readCheck.put(c.userId, 0);
-                    notRoomRead++;
-                }
-            }
-        }
-    }
 
     public static void main(String[] args)
     {
-        setupLogger();
         RoomSeverService roomSeverService = new RoomSeverService();
         int port = Integer.parseInt(args[0]);
         int adminPort = Integer.parseInt(args[1]);

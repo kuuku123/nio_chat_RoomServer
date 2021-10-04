@@ -18,3 +18,13 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'roomserver.RoomServerService'
+        )
+    }
+}
+
+mainClassName = 'roomserver.RoomServerService'
