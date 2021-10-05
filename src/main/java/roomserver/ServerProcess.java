@@ -53,18 +53,4 @@ public class ServerProcess
     }
 
 
-    public void createRoomProcess(int reqId, int operation, String userId, ByteBuffer attachment)
-    {
-        RoomSeverService service = new RoomSeverService();
-        int roomNum = attachment.getInt();
-        byte[] roomNameReceive = new byte[20];
-        attachment.get(roomNameReceive, 0, 20);
-        String roomName = new String(removeZero(roomNameReceive), StandardCharsets.UTF_8);
-
-        Room room = new Room(roomNum);
-        room.setRoomName(roomName);
-        RoomSeverService.masterRoomList.add(room);
-
-        logr.info("["+roomNum+ "번 방이 생성]");
-    }
 }

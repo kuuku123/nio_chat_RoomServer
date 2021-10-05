@@ -16,7 +16,6 @@ import java.util.logging.Logger;
 public class RoomSeverService
 {
     private final Logger logr;
-    ByteBuffer adminReadBuf = ByteBuffer.allocate(10000);
     ByteBuffer adminWriteBuf = ByteBuffer.allocate(10000);
     AsynchronousChannelGroup channelGroup;
     AsynchronousServerSocketChannel masterRoomSocketChannel;
@@ -33,8 +32,6 @@ public class RoomSeverService
     {
         logr = MyLog.getLogr();
     }
-
-
 
     void startServer(int openPort, int adminPort)
     {
@@ -62,7 +59,7 @@ public class RoomSeverService
             {
                 try
                 {
-                    logr.info("[연결 수락: " + socketChannel.getRemoteAddress() + ": " + Thread.currentThread().getName() + "]");
+                    logr.info("[Client 연결 수락: " + socketChannel.getRemoteAddress() + ": " + Thread.currentThread().getName() + "]");
                 } catch (IOException e)
                 {
                     logr.severe("[Client 연결 도중에 끊김 accept IOException fail]");
@@ -70,6 +67,7 @@ public class RoomSeverService
 
 
                 Client client = new Client(socketChannel);
+
                 masterClientList.add(client);
                 logr.info("[연결 개수: " + masterClientList.size() + "]");
 
@@ -138,13 +136,15 @@ public class RoomSeverService
 
     public void adminReceive()
     {
+        ByteBuffer adminReadBuf = ByteBuffer.allocate(10000);
         adminServerSocketChannel.read(adminReadBuf, adminReadBuf, new CompletionHandler<Integer, ByteBuffer>()
         {
             @Override
             public void completed(Integer result, ByteBuffer attachment)
             {
 
-                processOp(adminReadBuf);
+                processOp(attachment);
+                ByteBuffer adminReadBuf = ByteBuffer.allocate(10000);
                 if(adminServerSocketChannel.isOpen()) adminServerSocketChannel.read(adminReadBuf,adminReadBuf,this);
             }
 
@@ -201,7 +201,7 @@ public class RoomSeverService
             case fileDownload:
             case fileDelete:
             case createRoom:
-                serverProcess.createRoomProcess(reqId, operation, userId, attachment);
+//                serverProcess.createRoomProcess(reqId, operation, userId, attachment);
                 return;
             case quitRoom:
 //                serverProcess.quitRoomProcess(reqId,operation,roomNum,userId,attachment);
@@ -221,6 +221,20 @@ public class RoomSeverService
         }
     }
 
+    public static Client getSender(String userId)
+    {
+        List<Client> clientList = masterClientList;
+        Client sender = null;
+        for (Client c : clientList)
+        {
+            if (c.getUserId().equals(userId))
+            {
+                sender = c;
+                break;
+            }
+        }
+        return sender;
+    }
 
 
     public static void main(String[] args)
