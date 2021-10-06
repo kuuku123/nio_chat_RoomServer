@@ -168,7 +168,6 @@ public class ClientProcess
             String user = new String(removeZero(userReceive), StandardCharsets.UTF_8);
             users[i] = user;
         }
-        boolean success = false;
         for (String user : users)
         {
             Client client = new Client();
@@ -212,7 +211,7 @@ public class ClientProcess
                     {
                         try
                         {
-                            System.out.println("hahahahaahah");
+                            System.out.println(roomUser.getUserId());
                             roomUser.send(-1, operation, 0, 0, infoBuf);
                             for_inviteRoomProcess.wait(100);
                         } catch (InterruptedException e)
@@ -223,8 +222,7 @@ public class ClientProcess
                 }
             }
         }
-        if (success) invitee.send(reqId, operation, 0, 0, ByteBuffer.allocate(0));
-//        else invitee.send(reqId, operation, 0, 1, ByteBuffer.allocate(0));
+        invitee.send(reqId, operation, 0, 0, ByteBuffer.allocate(0));
 
     }
 
